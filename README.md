@@ -13,7 +13,7 @@
 - 吃到紅色食物加 1 分，每 5 分加快一級
 - 撞牆或撞到自己就結束，最高分會存在瀏覽器裡
 
-想用網址直接玩的話，到 GitHub 的 Settings 裡的 Pages，把來源設成 main 分支的根目錄。
+線上版：https://swcheng83.github.io/little_game/ 。每次 push 到 main，GitHub Actions 會自動重新部署。
 
 ## 其他檔案
 
