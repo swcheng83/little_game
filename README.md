@@ -15,6 +15,12 @@
 
 線上版：https://swcheng83.github.io/little_game/ 。每次 push 到 main，GitHub Actions 會自動重新部署。
 
+### 日常開圖 `dailymap/`
+
+真實世界探索遊戲的手機網頁原型：一次一則傳聞加冷熱羅盤，走到 75 公尺內自動揭曉；可以在你站的地方埋傳聞，用連結傳給朋友。定位只在頁面開著時使用，資料只存在各自手機的瀏覽器。
+
+線上版：https://swcheng83.github.io/little_game/dailymap/
+
 ## 其他檔案
 
 - `sync-test.txt`：Cloud session 容器裡建立的標記檔，記錄建立時間與 session ID。
