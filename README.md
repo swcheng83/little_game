@@ -21,6 +21,11 @@
 
 線上版：https://swcheng83.github.io/little_game/dailymap/
 
+- 第一次打開會先說明為什麼要定位，再請 Safari 問你；不開定位也能玩，到了按「我到了」。
+- 從 LINE 打開時會提醒改用 Safari。
+- `r/s01.html`～`r/s12.html`：12 則城市傳聞各自的分享頁，貼到 Threads 會帶出專屬預覽圖（`og/`）。圖由 `tools/make_og.py` 產生。
+- 朋友埋的傳聞可以「存成圖片」傳 LINE；圖片只是預告，朋友要點連結才收得到傳聞。
+
 ## 其他檔案
 
 - `sync-test.txt`：Cloud session 容器裡建立的標記檔，記錄建立時間與 session ID。

@@ -6,6 +6,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#e9eef0">
 <title>日常開圖</title>
+<meta name="description" content="跟著傳聞走，到了才知道是哪裡。把你的私房地點埋給朋友。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="日常開圖：附近有一則傳聞在等你">
+<meta property="og:description" content="跟著冷熱羅盤走，到了才知道是哪裡。">
+<meta property="og:image" content="https://swcheng83.github.io/little_game/dailymap/og/default.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 :root{--paper:#e9eef0;--land:#f6f8f7;--ink:#1b2433;--ink2:#4b5768;--ink3:#7c8796;--trail:#0f9d8f;--trailSoft:#d3efeb;--taxiDeep:#8a6300;--taxiSoft:#fff1c7;--rival:#7a5cc7;--rivalSoft:#ece6f8;--warn:#b5452f;--warnSoft:#f8e3dd;--card:#fff;--line:#d3dade}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -164,12 +171,13 @@ function decodeCode(raw) {
 }
 
 // ---------- state ----------
-var EMPTY = { me: null, found: {}, inbox: [], left: [], taken: {}, skipped: {}, chains: [], testMode: false };
+var EMPTY = { me: null, found: {}, inbox: [], left: [], taken: {}, skipped: {}, chains: [], testMode: false, geoOk: false };
 var S = (function () { try { var raw = localStorage.getItem(KEY); if (raw) { var o = JSON.parse(raw); for (var k in EMPTY) if (!(k in o)) o[k] = EMPTY[k]; return o; } } catch (e) {} return JSON.parse(JSON.stringify(EMPTY)); })();
 var canSave = true;
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { canSave = false; } }
 var pos = null, geo = 'wait', heading = null, testPos = null, tab = 'explore', focusId = null, sheet = null, spoil = false;
-var best = {}, editingMe = false;
+var best = {}, editingMe = false, manualArm = null, pendingSeed = null;
+var IN_APP = /\bLine\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent || '');
 var draft = { n: '', h: '', m: '', k: 'coffee', from: null };
 
 function here() { return S.testMode && testPos ? testPos : pos; }
@@ -196,6 +204,7 @@ var toastT;
 function toast(m) { var t = document.getElementById('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600); }
 
 // ---------- location & compass ----------
+function askGeo() { S.geoOk = true; save(); geo = 'wait'; render(); startGeo(); }
 function startGeo() {
   if (!window.isSecureContext) { geo = 'insecure'; render(); return; }
   if (!('geolocation' in navigator)) { geo = 'unavailable'; render(); return; }
@@ -232,9 +241,10 @@ function autoReveal() {
   var L = openList();
   for (var i = 0; i < L.length; i++) if (hav(h.lat, h.lng, L[i].a, L[i].o) <= RADIUS_OK) { reveal(L[i], S.testMode); return; }
 }
-function reveal(q, test) {
+function reveal(q, test, manual) {
   if (S.found[q.id]) return;
-  S.found[q.id] = { ts: Date.now(), test: !!test, n: q.n, from: q.sys ? null : q.f, sys: !!q.sys };
+  manualArm = null;
+  S.found[q.id] = { ts: Date.now(), test: !!test, manual: !!manual, n: q.n, from: q.sys ? null : q.f, sys: !!q.sys };
   if (!q.sys) S.chains.unshift({ ts: Date.now(), place: q.n, chain: (q.c || []).concat([q.f, S.me.name]).slice(-10) });
   save(); focusId = null; sheet = { kind: 'reveal', q: q, test: !!test }; render();
 }
@@ -260,10 +270,45 @@ function ingest(raw) {
 }
 var pendingHash = null;
 function readHash() {
-  var m = (location.hash || '').match(/c=(D[QR]1\.[A-Za-z0-9_-]+)/);
-  if (m) { pendingHash = m[1]; try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
+  var h = location.hash || '', m = h.match(/c=(D[QR]1\.[A-Za-z0-9_-]+)/), sd = h.match(/s=(s\d\d)\b/);
+  if (m) pendingHash = m[1];
+  if (sd && SEEDS.some(function (x) { return x.id === sd[1]; })) pendingSeed = sd[1];
+  if (m || sd) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
 }
 function pageBase() { return location.protocol === 'https:' ? location.origin + location.pathname : null; }
+function ogUrl(id) { var b = pageBase(); return b ? b.replace(/index\.html$/, '') + 'r/' + id + '.html' : null; }
+function threadsShare(q) {
+  var u = ogUrl(q.id), text = '我今天在日常開圖找到了一則城市傳聞：「' + q.h + '」你找得到嗎？';
+  window.open('https://www.threads.com/intent/post?text=' + encodeURIComponent(text) + (u ? '&url=' + encodeURIComponent(u) : ''), '_blank');
+}
+// ---------- picture cards (made on the phone, shared as a file) ----------
+function wrapLines(ctx, text, maxW) {
+  var out = [], line = '', chars = Array.from(text);
+  for (var i = 0; i < chars.length; i++) { var t = line + chars[i]; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = chars[i]; } else line = t; }
+  if (line) out.push(line); return out;
+}
+function drawCard(kicker, text, footer) {
+  var W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
+  var x = c.getContext('2d'), F = '-apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif';
+  x.fillStyle = '#e9eef0'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#ffffff'; x.beginPath(); if (x.roundRect) x.roundRect(60, 60, W - 120, H - 120, 48); else x.rect(60, 60, W - 120, H - 120); x.fill();
+  x.fillStyle = '#1b2433'; x.font = '900 64px ' + F; x.fillText('日常開圖', 120, 190);
+  x.fillStyle = '#7a5cc7'; x.font = '700 40px ' + F; wrapLines(x, kicker, W - 240).slice(0, 2).forEach(function (l, i) { x.fillText(l, 120, 290 + i * 56); });
+  x.fillStyle = '#1b2433'; x.font = '700 72px ' + F; wrapLines(x, '「' + text + '」', W - 240).slice(0, 5).forEach(function (l, i) { x.fillText(l, 120, 440 + i * 100); });
+  x.strokeStyle = '#0f9d8f'; x.lineWidth = 10; x.beginPath(); x.arc(W / 2, 1040, 105, 0, Math.PI * 2); x.stroke();
+  x.textAlign = 'center'; x.fillStyle = '#0f9d8f'; x.font = '900 130px ' + F; x.fillText('？', W / 2, 1087);
+  x.fillStyle = '#7c8796'; x.font = '500 36px ' + F; x.fillText(footer, W / 2, 1230);
+  return c;
+}
+function saveImage(kicker, text, footer) {
+  var url = drawCard(kicker, text, footer).toDataURL('image/png'), bin = atob(url.split(',')[1]), arr = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  var blob = new Blob([arr], { type: 'image/png' }), file = null;
+  try { file = new File([blob], 'dailymap.png', { type: 'image/png' }); } catch (e) {}
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file] }).catch(function () {}); return; }
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'dailymap.png'; document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast('圖片已存好');
+}
 function shareText(text, code) {
   var base = pageBase();
   return base ? text + '\n\n點這裡用手機打開：\n' + base + '#c=' + code
@@ -272,16 +317,25 @@ function shareText(text, code) {
 
 // ---------- views ----------
 function gpsChip() {
-  var label = S.testMode ? '測試模式' : geo === 'ok' ? '±' + Math.round(pos.acc) + ' m' : geo === 'denied' ? '沒有定位' : geo === 'insecure' ? '需要 https' : geo === 'unavailable' ? '拿不到定位' : '定位中';
+  var label = S.testMode ? '測試模式' : geo === 'ask' ? '還沒開定位' : geo === 'skipped' ? '手動模式' : geo === 'ok' ? '±' + Math.round(pos.acc) + ' m' : geo === 'denied' ? '沒有定位' : geo === 'insecure' ? '需要 https' : geo === 'unavailable' ? '拿不到定位' : '定位中';
   var dot = S.testMode ? 'var(--rival)' : geo === 'ok' ? 'var(--trail)' : geo === 'wait' ? 'var(--ink3)' : 'var(--warn)';
   return '<span class="dot" style="background:' + dot + '"></span>' + esc(label);
 }
 function updateChip() { var c = document.getElementById('gps'); if (c) c.innerHTML = gpsChip(); }
 function geoNotice() {
+  var pre = IN_APP ? '<div class="card warn"><div class="body">你是在 LINE 或其他 App 裡打開的，定位可能不穩。點右上角選單，選「用預設瀏覽器開啟」，改用 Safari 開。</div></div>' : '';
+  return pre + geoNotice2();
+}
+function geoNotice2() {
+  if (geo === 'ask' && !S.testMode) return '<div class="card"><div class="h">先讓日常開圖知道你在哪</div>' +
+    '<div class="body">要知道你離傳聞多近，冷熱羅盤才能告訴你「越來越近了」，走到時也才會自動揭曉。只在這頁開著時使用，不會背景追蹤，位置也不會傳到任何伺服器。</div>' +
+    '<div class="muted">按「開啟定位」後，Safari 會問你一次，請選「允許」。iPhone 對同一個網站拒絕兩次後，就只能到設定裡打開。</div>' +
+    '<div class="row"><button class="btn go" data-act="askGeo">開啟定位</button><button class="btn ghost" data-act="skipGeo">先不用定位</button></div></div>';
+  if (geo === 'skipped' && !S.testMode) return '<div class="card info"><div class="body">沒開定位也能玩：照著傳聞和提示找，到了按「我到了」。</div><div class="row"><button class="btn small" data-act="askGeo">開啟定位</button></div></div>';
   if (S.testMode) return '<div class="card info"><div class="body">測試模式：按「假裝我走到了」就能看揭曉畫面，這樣的發現不算分。到「發現簿」可以關掉。</div></div>';
   if (geo === 'insecure') return '<div class="card warn"><div class="body">這個網頁要放在 https 網址上，手機才肯給定位。現在可以先開測試模式看看。</div><div class="row"><button class="btn small" data-act="testOn">先用測試模式看看</button></div></div>';
-  if (geo === 'denied') return '<div class="card warn"><div class="body">沒有定位權限。iPhone：設定 › 隱私權與安全性 › 定位服務 › Safari 網站 › 使用 App 期間，然後重新整理這頁。</div><div class="row"><button class="btn small" data-act="testOn">先用測試模式看看</button></div></div>';
-  if (geo === 'unavailable') return '<div class="card warn"><div class="body">這支手機現在拿不到定位。到戶外再試，或先用測試模式。</div><div class="row"><button class="btn small" data-act="testOn">先用測試模式看看</button></div></div>';
+  if (geo === 'denied') return '<div class="card warn"><div class="body">Safari 沒有拿到定位。要重新打開：點網址列左邊的「大小」› 網站設定 › 位置 › 允許；或到 設定 › 隱私權與安全性 › 定位服務 › Safari 網站 › 使用 App 期間。改完重新整理這頁。</div><div class="muted">沒有定位也能玩：照著提示找，到了按「我到了」。</div><div class="row"><button class="btn small" data-act="testOn">先用測試模式看看</button></div></div>';
+  if (geo === 'unavailable') return '<div class="card warn"><div class="body">這支手機現在拿不到定位。到戶外再試；或照著提示找，到了按「我到了」。</div><div class="row"><button class="btn small" data-act="testOn">先用測試模式看看</button></div></div>';
   return '';
 }
 function compassHTML(d, b) {
@@ -323,7 +377,8 @@ function viewExplore() {
     (trend ? '<div class="trend" style="color:' + (trend.charAt(0) === '越' ? 'var(--trail)' : 'var(--warn)') + '">' + trend + '</div>' : '') +
     '<div class="muted">走到 ' + RADIUS_OK + ' 公尺內，它會自己揭曉。這頁要開著。</div></div>';
   out += '<div class="row"><button class="btn" data-act="next"' + (Q.length < 2 ? ' disabled' : '') + '>換一則</button><button class="btn ghost" data-act="skip">略過</button>' +
-    (S.testMode ? '<button class="btn go" data-act="fake">假裝我走到了</button>' : '') + '</div>';
+    (S.testMode ? '<button class="btn go" data-act="fake">假裝我走到了</button>' : '') +
+    (!S.testMode && geo !== 'ok' && geo !== 'wait' ? '<button class="btn go" data-act="manual">' + (manualArm === q.id ? '確定到了？再按一次' : '我到了') + '</button>' : '') + '</div>';
   out += spoil ? '<div class="card"><div class="body">提示：' + esc(q.sys ? q.area + ' 的 ' + q.n : q.f + ' 說這裡叫「' + q.n + '」') + '</div></div>'
     : '<button class="link" data-act="spoil">真的找不到？看提示（會爆雷）</button>';
   out += '<div class="muted">還有 ' + Math.max(0, Q.length - 1) + ' 則傳聞在等你。</div>';
@@ -385,7 +440,7 @@ function viewBook() {
   ids.forEach(function (id) {
     var f = S.found[id], q = byId[id];
     out += '<div class="item"><div class="ico' + (f.sys ? '' : ' f') + '">' + (q ? cat(q.k).i : '✓') + '</div><div style="flex:1"><div class="itemTitle">' + esc(f.n) + '</div><div class="itemMeta">' +
-      new Date(f.ts).toLocaleDateString('zh-TW') + (f.from ? ' · ' + esc(f.from) + ' 的傳聞' : '') + (f.test ? ' · 測試' : '') + '</div></div></div>';
+      new Date(f.ts).toLocaleDateString('zh-TW') + (f.from ? ' · ' + esc(f.from) + ' 的傳聞' : '') + (f.test ? ' · 測試' : '') + (f.manual ? ' · 手動' : '') + '</div></div></div>';
   });
   out += '<div class="muted">資料只存在這支手機的瀏覽器。傳聞靠連結裡的碼在朋友間傳，沒有伺服器、不需要帳號。' + (canSave ? '' : '（這個瀏覽器不讓網頁存資料，關掉就會不見。）') + '</div>';
   return out;
@@ -408,7 +463,8 @@ function sheetHTML() {
   var q = sheet.q, body = '';
   if (sheet.kind === 'share') {
     body = '<div class="sheetH">傳聞埋好了</div><div class="muted">朋友只會先看到傳聞那句話。走到這裡（' + RADIUS_OK + ' 公尺內）才會揭曉「' + esc(q.n) + '」和你的驚喜。</div>' +
-      shareHTML(S.me.name + ' 在附近埋了一則傳聞給你：「' + q.h + '」', encQuest(q));
+      shareHTML(S.me.name + ' 在附近埋了一則傳聞給你：「' + q.h + '」', encQuest(q)) +
+      '<button class="btn" data-act="img" data-v="bury">存成圖片</button><div class="muted">圖片只是預告，朋友要點連結才收得到傳聞，所以圖片和連結分開傳。</div>';
   } else if (sheet.kind === 'reply') {
     body = '<div class="sheetH">告訴 ' + esc(q.f) + ' 你找到了</div><div class="muted">' + esc(q.f) + ' 點開這個連結，就會看到你找到了，傳承鏈也會接上你。</div>' +
       shareHTML('我找到你埋的「' + q.n + '」了！', encReply({ q: q.id, b: S.me.name, n: q.n, ts: Date.now() }));
@@ -417,6 +473,7 @@ function sheetHTML() {
     body = '<div class="kicker">' + (sheet.test ? '測試揭曉' : '你發現了') + '</div><div class="revealName">' + esc(q.n) + '</div>' +
       '<div class="revealBox"><div class="revealText">' + esc(q.sys ? q.r : (q.m || q.f + ' 想讓你來看看這裡。')) + '</div>' + (q.sys ? '' : '<div class="revealBy">— ' + esc(q.f) + ' 留給你的</div>') + '</div>' +
       (q.sys && q.t ? '<div class="body">要不要順手：' + esc(q.t) + '</div>' : '') +
+      '<div class="row">' + (q.sys && ogUrl(q.id) ? '<button class="btn" data-act="threads">分享到 Threads</button>' : '') + '<button class="btn" data-act="img" data-v="found">存成圖片</button></div>' +
       (ch ? chainHTML(ch, true) + '<button class="btn primary block" data-act="toReply">告訴 ' + esc(q.f) + ' 你找到了</button><button class="btn go block" data-act="chainOn">接下去：在附近埋一則給下一位</button>'
         : '<button class="btn go block" data-act="leaveHere">在這附近埋一則給朋友</button>');
   }
@@ -457,8 +514,17 @@ document.addEventListener('click', function (e) {
   var a = t.getAttribute('data-act'), v = t.getAttribute('data-v'), q;
   switch (a) {
     case 'tab': tab = v; spoil = false; render(); window.scrollTo(0, 0); break;
-    case 'next': { var Q = queue(), c = current(), i = -1; for (var j = 0; j < Q.length; j++) if (c && Q[j].id === c.id) i = j; if (Q.length) focusId = Q[(i + 1) % Q.length].id; spoil = false; render(); break; }
+    case 'next': { manualArm = null; var Q = queue(), c = current(), i = -1; for (var j = 0; j < Q.length; j++) if (c && Q[j].id === c.id) i = j; if (Q.length) focusId = Q[(i + 1) % Q.length].id; spoil = false; render(); break; }
     case 'skip': q = current(); if (q) { S.skipped[q.id] = 1; save(); focusId = null; spoil = false; render(); toast('先略過，沒有任何扣分。'); } break;
+    case 'askGeo': askGeo(); break;
+    case 'skipGeo': geo = 'skipped'; render(); break;
+    case 'manual': q = current(); if (q) { if (manualArm === q.id) reveal(q, false, true); else { manualArm = q.id; render(); } } break;
+    case 'threads': if (sheet && sheet.q) threadsShare(sheet.q); break;
+    case 'img': if (sheet && sheet.q) {
+      var iq = sheet.q;
+      if (v === 'bury') saveImage(S.me.name + ' 埋了一則傳聞給你', iq.h, '到了才知道是哪裡');
+      else saveImage(iq.sys ? '我今天找到了這則城市傳聞' : iq.f + ' 留的傳聞，我今天找到了', iq.h, '日常開圖 · 到了才知道是哪裡');
+    } break;
     case 'fake': q = current(); if (q) { testPos = { lat: q.a, lng: q.o, acc: 5 }; reveal(q, true); } break;
     case 'spoil': spoil = true; render(); break;
     case 'compass': enableCompass(); break;
@@ -492,9 +558,13 @@ document.addEventListener('click', function (e) {
 });
 
 readHash();
+if (pendingSeed) { if (S.found[pendingSeed]) setTimeout(function () { toast('這則傳聞你已經找到了'); }, 300); else { focusId = pendingSeed; S.skipped[pendingSeed] = 0; delete S.skipped[pendingSeed]; } }
+if (S.geoOk) startGeo(); else geo = 'ask';
 render();
 if (S.me && pendingHash) { ingest(pendingHash); pendingHash = null; }
-startGeo();
+if (!S.geoOk) {
+  try { if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function (p) { if (p.state === 'granted') askGeo(); }).catch(function () {}); } catch (e) {}
+}
 })();
 </script>
 </body>
