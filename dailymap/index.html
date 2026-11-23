@@ -77,6 +77,18 @@ textarea{min-height:60px;resize:vertical}
 .revealText{font-size:17px;line-height:1.55}.revealBy{font-size:13px;color:var(--rival);text-align:right}
 .codebox{background:var(--card);border-radius:8px;padding:10px;font:12px/1.4 Menlo,monospace;color:var(--ink2);word-break:break-all;max-height:140px;overflow:auto;user-select:all;-webkit-user-select:all}
 [hidden]{display:none!important}
+.stampGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stampCell{background:#fbf8f1;border:1px solid #e6dccb;border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}
+.stampCell canvas{width:120px;height:120px}
+.stampPlace{font-size:13px;font-weight:700;line-height:1.3}
+.stampBy{font-size:13px;font-weight:700;color:var(--rival)}
+.stampMeta{font-size:12px;color:var(--ink3)}
+.stampRow{display:flex;align-items:center;gap:12px}
+.stampRow canvas{width:96px;height:96px;flex:none}
+.stampGot{background:#fbf8f1;border:1px solid #e6dccb;border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.stampGot canvas{width:150px;height:150px}
+.stampIn{animation:stampIn .6s cubic-bezier(.2,1.5,.4,1) .25s both}
+@keyframes stampIn{0%{transform:scale(2.3) rotate(-14deg);opacity:0}55%{opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
 </style>
 </head>
 <body>
@@ -97,23 +109,25 @@ var CATS = [
 // Wikipedia (Rengstorff House), Mountain View library / historical association (Castro St),
 // and a Palo Alto feature on Bell's Books.
 var SEEDS = [
-  { id: 's01', k: 'coffee', n: 'Dana Street Roasting', a: 37.3924139, o: -122.0790417, area: 'Mountain View', h: '傳聞市中心有間店自己烘豆，早上走近就聞得到。', r: '找到了：Dana Street Roasting，一間自己烘豆的老咖啡館。', t: '點一杯，問店員今天推哪一支豆子。' },
-  { id: 's02', k: 'history', n: 'Olympus Caffe（Castro St 鐵道端）', a: 37.3944747, o: -122.0782518, area: 'Mountain View', h: '有人說，這條主街本來不是市中心，是一條鐵路把它變成市中心的。', r: '你站在 Castro Street 靠鐵道的這頭。1864 年鐵路蓋好後，鎮中心才移到鐵道旁的這條街；街名來自當地的 Castro 家族。', t: '坐在戶外座位，數數看五分鐘內經過幾班火車。' },
-  { id: 's03', k: 'sweet', n: "Alexander's Patisserie", a: 37.3935872, o: -122.0789593, area: 'Mountain View', h: '附近有個玻璃櫃，裡面排得像一盒顏料。', r: "找到了：Alexander's Patisserie，整櫃的馬卡龍和甜點。", t: '挑一顆你從沒吃過的口味。' },
-  { id: 's04', k: 'sweet', n: 'Paris Baguette（Castro St）', a: 37.3921379, o: -122.0796159, area: 'Mountain View', h: '傳聞有扇窗邊位子，是看整條主街人來人往的最佳座位。', r: '找到了：Paris Baguette 的窗邊座。', t: '買一個明天的早餐麵包，坐窗邊看三分鐘街景。' },
-  { id: 's05', k: 'book', n: 'East West Bookshop', a: 37.3922483, o: -122.0801542, area: 'Mountain View', h: '主街上有間店，賣的不只是書，還有一整面會發光的石頭。', r: '找到了：East West Bookshop，書、水晶、塔羅牌都有。', t: '翻一本你平常絕對不會拿起來的書。' },
-  { id: 's06', k: 'walk', n: 'Pioneer Memorial Park', a: 37.3895745, o: -122.0832656, area: 'Mountain View', h: '圖書館旁邊藏著一塊很安靜的綠地，很多人路過卻沒走進去。', r: '找到了：Pioneer Memorial Park，就在圖書館旁。', t: '找一張樹蔭下的長椅坐五分鐘，什麼都不做。' },
-  { id: 's07', k: 'walk', n: 'Eagle Park', a: 37.389145, o: -122.08623, area: 'Mountain View', h: '離市中心走路就到的地方，有一大片草地和一座大泳池。', r: '找到了：Eagle Park。', t: '傍晚在大草地繞一圈。' },
-  { id: 's08', k: 'walk', n: 'Sylvan Park', a: 37.3817546, o: -122.0631265, area: 'Mountain View', h: '有座公園裡藏著單槓和雙槓，像一個露天健身房。', r: '找到了：Sylvan Park 的運動區。', t: '試試看能做幾下引體向上，不行就吊十秒也算。' },
-  { id: 's09', k: 'history', n: 'Shoreline Lake', a: 37.4328295, o: -122.0915558, area: 'Mountain View', h: '傳聞湖邊附近有一棟一百五十多年的老房子，曾經被整棟搬家。', r: '湖的附近就是 Rengstorff House：Henry Rengstorff 約在 1867 年蓋的房子，1980 年代被搬進 Shoreline Park。', t: '等一次湖邊的夕陽。' },
-  { id: 's10', k: 'coffee', n: 'Cafe Venetia', a: 37.4474922, o: -122.1603798, area: 'Palo Alto', h: 'University Ave 上有間咖啡館，樓上才是好位子。', r: '找到了：Cafe Venetia。', t: '上樓找個位子，看樓下的街。' },
-  { id: 's11', k: 'coffee', n: 'Oklava Cafe', a: 37.4449633, o: -122.1628192, area: 'Palo Alto', h: '有一杯咖啡，喝完杯底的渣還能拿來「算命」。', r: '找到了：Oklava Cafe，有土耳其咖啡。', t: '點一杯土耳其咖啡，喝完看看杯底像什麼。' },
-  { id: 's12', k: 'history', n: "Bell's Books", a: 37.4440785, o: -122.1622229, area: 'Palo Alto', h: '傳聞有間書店的故事，從 1935 年一個從洛杉磯開車北上的年輕人開始。', r: "找到了：Bell's Books。1935 年 Herbert Bell 從洛杉磯來到 Palo Alto，1938 年店搬到現在這個 Emerson St 的位置。", t: '找一本比你年紀還老的書。' }
+  { id: 's01', k: 'coffee', n: 'Dana Street Roasting', a: 37.3924139, o: -122.0790417, area: 'Mountain View', h: '傳聞市中心有間店自己烘豆，早上走近就聞得到。', r: '找到了：Dana Street Roasting，一間自己烘豆的老咖啡館。', t: '點一杯，問店員今天推哪一支豆子。', st: [0, 0, '烘豆'] },
+  { id: 's02', k: 'history', n: 'Olympus Caffe（Castro St 鐵道端）', a: 37.3944747, o: -122.0782518, area: 'Mountain View', h: '有人說，這條主街本來不是市中心，是一條鐵路把它變成市中心的。', r: '你站在 Castro Street 靠鐵道的這頭。1864 年鐵路蓋好後，鎮中心才移到鐵道旁的這條街；街名來自當地的 Castro 家族。', t: '坐在戶外座位，數數看五分鐘內經過幾班火車。', st: [2, 2, '鐵道'] },
+  { id: 's03', k: 'sweet', n: "Alexander's Patisserie", a: 37.3935872, o: -122.0789593, area: 'Mountain View', h: '附近有個玻璃櫃，裡面排得像一盒顏料。', r: "找到了：Alexander's Patisserie，整櫃的馬卡龍和甜點。", t: '挑一顆你從沒吃過的口味。', st: [1, 3, '馬卡龍'] },
+  { id: 's04', k: 'sweet', n: 'Paris Baguette（Castro St）', a: 37.3921379, o: -122.0796159, area: 'Mountain View', h: '傳聞有扇窗邊位子，是看整條主街人來人往的最佳座位。', r: '找到了：Paris Baguette 的窗邊座。', t: '買一個明天的早餐麵包，坐窗邊看三分鐘街景。', st: [0, 1, '窗邊'] },
+  { id: 's05', k: 'book', n: 'East West Bookshop', a: 37.3922483, o: -122.0801542, area: 'Mountain View', h: '主街上有間店，賣的不只是書，還有一整面會發光的石頭。', r: '找到了：East West Bookshop，書、水晶、塔羅牌都有。', t: '翻一本你平常絕對不會拿起來的書。', st: [2, 3, '水晶'] },
+  { id: 's06', k: 'walk', n: 'Pioneer Memorial Park', a: 37.3895745, o: -122.0832656, area: 'Mountain View', h: '圖書館旁邊藏著一塊很安靜的綠地，很多人路過卻沒走進去。', r: '找到了：Pioneer Memorial Park，就在圖書館旁。', t: '找一張樹蔭下的長椅坐五分鐘，什麼都不做。', st: [1, 4, '樹蔭'] },
+  { id: 's07', k: 'walk', n: 'Eagle Park', a: 37.389145, o: -122.08623, area: 'Mountain View', h: '離市中心走路就到的地方，有一大片草地和一座大泳池。', r: '找到了：Eagle Park。', t: '傍晚在大草地繞一圈。', st: [0, 4, '草地'] },
+  { id: 's08', k: 'walk', n: 'Sylvan Park', a: 37.3817546, o: -122.0631265, area: 'Mountain View', h: '有座公園裡藏著單槓和雙槓，像一個露天健身房。', r: '找到了：Sylvan Park 的運動區。', t: '試試看能做幾下引體向上，不行就吊十秒也算。', st: [2, 1, '單槓'] },
+  { id: 's09', k: 'history', n: 'Shoreline Lake', a: 37.4328295, o: -122.0915558, area: 'Mountain View', h: '傳聞湖邊附近有一棟一百五十多年的老房子，曾經被整棟搬家。', r: '湖的附近就是 Rengstorff House：Henry Rengstorff 約在 1867 年蓋的房子，1980 年代被搬進 Shoreline Park。', t: '等一次湖邊的夕陽。', st: [1, 0, '老屋'] },
+  { id: 's10', k: 'coffee', n: 'Cafe Venetia', a: 37.4474922, o: -122.1603798, area: 'Palo Alto', h: 'University Ave 上有間咖啡館，樓上才是好位子。', r: '找到了：Cafe Venetia。', t: '上樓找個位子，看樓下的街。', st: [0, 2, '樓上'] },
+  { id: 's11', k: 'coffee', n: 'Oklava Cafe', a: 37.4449633, o: -122.1628192, area: 'Palo Alto', h: '有一杯咖啡，喝完杯底的渣還能拿來「算命」。', r: '找到了：Oklava Cafe，有土耳其咖啡。', t: '點一杯土耳其咖啡，喝完看看杯底像什麼。', st: [2, 0, '杯底'] },
+  { id: 's12', k: 'history', n: "Bell's Books", a: 37.4440785, o: -122.1622229, area: 'Palo Alto', h: '傳聞有間書店的故事，從 1935 年一個從洛杉磯開車北上的年輕人開始。', r: "找到了：Bell's Books。1935 年 Herbert Bell 從洛杉磯來到 Palo Alto，1938 年店搬到現在這個 Emerson St 的位置。", t: '找一本比你年紀還老的書。', st: [1, 2, '老書'] }
 ];
 var BAD_WORDS = ['酒', '啤酒', '喝醉', '夜店', '酒吧', '半夜', '凌晨', '深夜', '陌生人', '搭訕', '要電話', '要ig', '闖', '翻牆', '爬上', '偷',
   '危險', '跳下', '跳水', '飆車', '鐵軌', '高速公路', '屋頂', '賭', '菸', '大麻', '裸', '打架', '鬼屋', '墓',
   'bar', 'beer', 'drunk', 'weed', 'vape', 'stranger', 'trespass', 'rooftop'];
 
+// Stamps (傳聞章): drawn on the phone from a shape, an ink and a short word.
+var INKS = ['#c8372d', '#1f6f8b', '#2e4a9e', '#6b3fa0', '#2f7d4f'], SHAPE_N = 3, STYLE_N = SHAPE_N * 5;
 var RADIUS_OK = 75, ACC_MAX = 100, KEY = 'dailymap.web.v2';
 
 // ---------- helpers ----------
@@ -149,7 +163,7 @@ function heat(d) {
 function b64e(obj) { var b = unescape(encodeURIComponent(JSON.stringify(obj))); return btoa(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function b64d(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return JSON.parse(decodeURIComponent(escape(atob(s)))); }
 var KNOWN = ['coffee', 'sweet', 'food', 'walk', 'view', 'book', 'history', 'other'];
-function encQuest(q) { return 'DQ1.' + b64e({ i: q.id, f: q.f, c: q.c, n: q.n, h: q.h, a: +q.a.toFixed(5), o: +q.o.toFixed(5), m: q.m, k: q.k, s: q.ts }); }
+function encQuest(q) { return 'DQ1.' + b64e({ i: q.id, f: q.f, c: q.c, n: q.n, h: q.h, a: +q.a.toFixed(5), o: +q.o.toFixed(5), m: q.m, k: q.k, s: q.ts, t: q.st || undefined }); }
 function encReply(r) { return 'DR1.' + b64e({ q: r.q, b: r.b, n: r.n, s: r.ts }); }
 function decodeCode(raw) {
   var m = String(raw || '').match(/D[QR]1\.[A-Za-z0-9_-]{8,1500}/);
@@ -161,7 +175,8 @@ function decodeCode(raw) {
     var k = clean(obj.k, 10);
     var q = { id: clean(obj.i, 12), f: clean(obj.f, 16) || '朋友', n: clean(obj.n, 24), h: clean(obj.h, 40) || '附近有個朋友想讓你看的地方。', m: clean(obj.m, 60),
       k: KNOWN.indexOf(k) >= 0 ? k : 'other', a: Number(obj.a), o: Number(obj.o), ts: Number(obj.s) || Date.now(),
-      c: Array.isArray(obj.c) ? obj.c.slice(-8).map(function (x) { return clean(x, 16); }).filter(Boolean) : [] };
+      c: Array.isArray(obj.c) ? obj.c.slice(-8).map(function (x) { return clean(x, 16); }).filter(Boolean) : [],
+      st: Array.isArray(obj.t) ? [Number(obj.t[0]) | 0, Number(obj.t[1]) | 0, clean(obj.t[2], 4)] : null };
     if (!q.id || !q.n || !isFinite(q.a) || !isFinite(q.o) || Math.abs(q.a) > 90 || Math.abs(q.o) > 180) return { err: '這則傳聞的地點資料有問題。' };
     return { kind: 'quest', q: q };
   }
@@ -178,7 +193,8 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e
 var pos = null, geo = 'wait', heading = null, testPos = null, tab = 'explore', focusId = null, sheet = null, spoil = false;
 var best = {}, editingMe = false, manualArm = null, pendingSeed = null;
 var IN_APP = /\bLine\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent || '');
-var draft = { n: '', h: '', m: '', k: 'coffee', from: null };
+function newDraft(k, from) { return { n: '', h: '', m: '', w: '', k: k || 'coffee', from: from || null, sv: Math.floor(Math.random() * STYLE_N) }; }
+var draft = newDraft();
 
 function here() { return S.testMode && testPos ? testPos : pos; }
 function distTo(q) { var h = here(); return h ? hav(h.lat, h.lng, q.a, q.o) : null; }
@@ -244,7 +260,7 @@ function autoReveal() {
 function reveal(q, test, manual) {
   if (S.found[q.id]) return;
   manualArm = null;
-  S.found[q.id] = { ts: Date.now(), test: !!test, manual: !!manual, n: q.n, from: q.sys ? null : q.f, sys: !!q.sys };
+  S.found[q.id] = { ts: Date.now(), test: !!test, manual: !!manual, n: q.n, from: q.sys ? null : q.f, sys: !!q.sys, st: stampOf(q) };
   if (!q.sys) S.chains.unshift({ ts: Date.now(), place: q.n, chain: (q.c || []).concat([q.f, S.me.name]).slice(-10) });
   save(); focusId = null; sheet = { kind: 'reveal', q: q, test: !!test }; render();
 }
@@ -254,7 +270,7 @@ function ingest(raw) {
   var d = decodeCode(raw);
   if (d.err) { toast(d.err); return d; }
   if (d.kind === 'quest') {
-    var q = d.q, bad = unsafe(q.n + ' ' + q.h + ' ' + q.m);
+    var q = d.q, bad = unsafe(q.n + ' ' + q.h + ' ' + q.m + ' ' + (q.st ? q.st[2] : ''));
     if (bad) { toast('這則傳聞含有不適合的內容（' + bad + '），已幫你擋掉。'); return { err: 'unsafe' }; }
     if (S.left.some(function (x) { return x.id === q.id; })) { toast('這是你自己埋的傳聞。'); return d; }
     if (!S.inbox.some(function (x) { return x.id === q.id; })) { S.inbox.unshift(q); save(); }
@@ -284,10 +300,10 @@ function threadsShare(q) {
 // ---------- picture cards (made on the phone, shared as a file) ----------
 function wrapLines(ctx, text, maxW) {
   var out = [], line = '', chars = Array.from(text);
-  for (var i = 0; i < chars.length; i++) { var t = line + chars[i]; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = chars[i]; } else line = t; }
+  for (var i = 0; i < chars.length; i++) { var t = line + chars[i]; if (ctx.measureText(t).width > maxW && line && '，。、！？」』）：；…'.indexOf(chars[i]) < 0) { out.push(line); line = chars[i]; } else line = t; }
   if (line) out.push(line); return out;
 }
-function drawCard(kicker, text, footer) {
+function drawCard(kicker, text, footer, st) {
   var W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
   var x = c.getContext('2d'), F = '-apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif';
   x.fillStyle = '#e9eef0'; x.fillRect(0, 0, W, H);
@@ -295,13 +311,14 @@ function drawCard(kicker, text, footer) {
   x.fillStyle = '#1b2433'; x.font = '900 64px ' + F; x.fillText('日常開圖', 120, 190);
   x.fillStyle = '#7a5cc7'; x.font = '700 40px ' + F; wrapLines(x, kicker, W - 240).slice(0, 2).forEach(function (l, i) { x.fillText(l, 120, 290 + i * 56); });
   x.fillStyle = '#1b2433'; x.font = '700 72px ' + F; wrapLines(x, '「' + text + '」', W - 240).slice(0, 5).forEach(function (l, i) { x.fillText(l, 120, 440 + i * 100); });
-  x.strokeStyle = '#0f9d8f'; x.lineWidth = 10; x.beginPath(); x.arc(W / 2, 1040, 105, 0, Math.PI * 2); x.stroke();
-  x.textAlign = 'center'; x.fillStyle = '#0f9d8f'; x.font = '900 130px ' + F; x.fillText('？', W / 2, 1087);
+  x.textAlign = 'center';
+  if (st) x.drawImage(makeStamp(Object.assign({}, st, { place: '到了才知道' }), 300, fdate(Date.now())), W / 2 - 150, 885);
+  else { x.strokeStyle = '#0f9d8f'; x.lineWidth = 10; x.beginPath(); x.arc(W / 2, 1040, 105, 0, Math.PI * 2); x.stroke(); x.fillStyle = '#0f9d8f'; x.font = '900 130px ' + F; x.fillText('？', W / 2, 1087); }
   x.fillStyle = '#7c8796'; x.font = '500 36px ' + F; x.fillText(footer, W / 2, 1230);
   return c;
 }
-function saveImage(kicker, text, footer) {
-  var url = drawCard(kicker, text, footer).toDataURL('image/png'), bin = atob(url.split(',')[1]), arr = new Uint8Array(bin.length);
+function saveImage(kicker, text, footer, st) {
+  var url = drawCard(kicker, text, footer, st).toDataURL('image/png'), bin = atob(url.split(',')[1]), arr = new Uint8Array(bin.length);
   for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   var blob = new Blob([arr], { type: 'image/png' }), file = null;
   try { file = new File([blob], 'dailymap.png', { type: 'image/png' }); } catch (e) {}
@@ -309,6 +326,95 @@ function saveImage(kicker, text, footer) {
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'dailymap.png'; document.body.appendChild(a); a.click();
   setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast('圖片已存好');
 }
+// ---------- stamps ----------
+function hashStr(t) { var h = 2166136261; t = String(t); for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function stampOf(q) {
+  var t = q.st, hs = hashStr(q.id || 'x');
+  var sh = t && t[0] >= 0 && t[0] < SHAPE_N ? t[0] : hs % SHAPE_N;
+  var ink = t && t[1] >= 0 && t[1] < INKS.length ? t[1] : (hs >>> 3) % INKS.length;
+  return { s: sh, c: ink, w: (t && t[2]) || cat(q.k).n, by: q.sys ? '日常開圖' : (q.f || '朋友'), place: q.n || '', id: String(q.id || 'x') };
+}
+function fdate(ts) { var d = new Date(ts); return d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate(); }
+function fitText(x, text, maxW, size, weight, F) {
+  var t = Array.from(text);
+  for (var sz = size; sz > size * 0.55; sz -= 1) { x.font = weight + ' ' + sz + 'px ' + F; if (x.measureText(t.join('')).width <= maxW) return t.join(''); }
+  while (t.length > 1 && x.measureText(t.join('') + '…').width > maxW) t.pop();
+  return t.join('') + (t.length < Array.from(text).length ? '…' : '');
+}
+function arcText(x, text, rad, size, top) {
+  var t = Array.from(text), gap = size * 0.12, maxA = 0.86 * Math.PI;
+  var ws = t.map(function (ch) { return x.measureText(ch).width + gap; }), tot = ws.reduce(function (a, b) { return a + b; }, 0) / rad;
+  if (tot > maxA) {
+    var ell = x.measureText('…').width + gap; tot = ell / rad; var keep = [];
+    for (var i = 0; i < t.length && tot + ws[i] / rad <= maxA; i++) { keep.push(i); tot += ws[i] / rad; }
+    t = keep.map(function (i) { return t[i]; }).concat(['…']); ws = keep.map(function (i) { return ws[i]; }).concat([ell]);
+  }
+  var a = -tot / 2;
+  t.forEach(function (ch, i) {
+    var off = a + ws[i] / rad / 2; a += ws[i] / rad;
+    x.save();
+    if (top) { x.rotate(off); x.fillText(ch, 0, -rad); } else { x.rotate(-off); x.fillText(ch, 0, rad); }
+    x.restore();
+  });
+}
+function shapePath(x, sh, rad) {
+  x.beginPath();
+  if (sh === 0) x.arc(0, 0, rad, 0, Math.PI * 2);
+  else if (sh === 1) { var k = rad * 0.88, r = rad * 0.16; x.moveTo(-k + r, -k); x.arcTo(k, -k, k, k, r); x.arcTo(k, k, -k, k, r); x.arcTo(-k, k, -k, -k, r); x.arcTo(-k, -k, k, -k, r); }
+  else for (var i = 0; i < 8; i++) { var a = Math.PI / 8 + i * Math.PI / 4; x[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rad, Math.sin(a) * rad); }
+  x.closePath();
+}
+function makeStamp(st, px, dateStr) {
+  var c = document.createElement('canvas'); c.width = c.height = px;
+  var x = c.getContext && c.getContext('2d'); if (!x) return c;
+  var F = '-apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif', ink = INKS[st.c] || INKS[0];
+  var R = px * 0.44, seed = hashStr(st.id + st.w + st.s + st.c);
+  x.translate(px / 2, px / 2); x.rotate(((seed % 13) - 6) * Math.PI / 180);
+  x.strokeStyle = ink; x.fillStyle = ink; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round';
+  x.lineWidth = px * 0.034; shapePath(x, st.s, R); x.stroke();
+  var word = Array.from(st.w || '章').slice(0, 4).join(''), wl = Array.from(word).length;
+  var wsz = R * (wl <= 2 ? 0.46 : wl === 3 ? 0.34 : 0.27);
+  if (st.s === 0) {
+    x.lineWidth = px * 0.012; shapePath(x, 0, R * 0.72); x.stroke();
+    var band = R * 0.86, tsz = R * 0.15;
+    x.font = '700 ' + tsz + 'px ' + F; arcText(x, st.place || '這個地方', band, tsz, true);
+    arcText(x, st.by + ' 製', band, tsz, false);
+    x.font = '700 ' + (tsz * 0.9) + 'px ' + F; x.fillText('★', -band, 0); x.fillText('★', band, 0);
+    x.font = '900 ' + wsz + 'px ' + F; x.fillText(word, 0, -R * 0.06);
+    x.font = '600 ' + (R * 0.12) + 'px ' + F; x.fillText(dateStr || '', 0, R * 0.38);
+  } else {
+    x.lineWidth = px * 0.012; shapePath(x, st.s, R * 0.84); x.stroke();
+    var inner = st.s === 1 ? R * 0.66 : R * 0.6, tsz2 = R * 0.15;
+    x.fillText(fitText(x, st.place || '這個地方', inner * 2, tsz2, 700, F), 0, -R * 0.5);
+    x.lineWidth = px * 0.008; x.beginPath(); x.moveTo(-inner, -R * 0.34); x.lineTo(inner, -R * 0.34); x.moveTo(-inner, R * 0.3); x.lineTo(inner, R * 0.3); x.stroke();
+    x.font = '900 ' + wsz + 'px ' + F; x.fillText(word, 0, -R * 0.02);
+    x.fillText(fitText(x, st.by + ' 製', inner * 2, R * 0.13, 700, F), 0, R * 0.44);
+    x.font = '600 ' + (R * 0.1) + 'px ' + F; x.fillText(dateStr || '', 0, R * 0.62);
+  }
+  // worn ink, like a real rubber stamp
+  x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'destination-out';
+  var rnd = seed || 1; function r01() { rnd ^= rnd << 13; rnd ^= rnd >>> 17; rnd ^= rnd << 5; return ((rnd >>> 0) % 10000) / 10000; }
+  for (var i = 0; i < px * 1.4; i++) { x.globalAlpha = 0.25 + r01() * 0.6; x.beginPath(); x.arc(r01() * px, r01() * px, (0.4 + r01() * 1.4) * px / 160, 0, Math.PI * 2); x.fill(); }
+  x.globalAlpha = 0.18; x.fillRect(0, 0, px, px);
+  return c;
+}
+var stampQ = [];
+function stampCanvas(st, css, dateStr, cls, live) {
+  stampQ.push({ st: st, css: css, d: dateStr });
+  return '<canvas data-si="' + (stampQ.length - 1) + '"' + (live ? ' data-live="1"' : '') + (cls ? ' class="' + cls + '"' : '') + ' width="' + css + '" height="' + css + '" style="width:' + css + 'px;height:' + css + 'px" role="img" aria-label="' + esc(st.by + ' 做的章：' + st.w) + '"></canvas>';
+}
+function paintOne(el, st, css, d) {
+  var x = el.getContext && el.getContext('2d'); if (!x) return;
+  var px = Math.round(css * Math.min(3, window.devicePixelRatio || 1)); el.width = el.height = px;
+  x.clearRect(0, 0, px, px); x.drawImage(makeStamp(st, px, d), 0, 0);
+}
+function paintStamps() {
+  var els = document.querySelectorAll('canvas[data-si]');
+  for (var i = 0; i < els.length; i++) { var it = stampQ[+els[i].getAttribute('data-si')]; if (it) paintOne(els[i], it.st, it.css, it.d); }
+}
+function draftStamp() { return { s: draft.sv % SHAPE_N, c: Math.floor(draft.sv / SHAPE_N) % INKS.length, w: clean(draft.w, 4) || cat(draft.k).n, by: S.me ? S.me.name : '你', place: clean(draft.n, 20) || '這個地方', id: 'draft' }; }
+function foundStamp(id, f, q) { return f.st || stampOf(q || { id: id, n: f.n, k: 'other', f: f.from, sys: f.sys }); }
+
 function shareText(text, code) {
   var base = pageBase();
   return base ? text + '\n\n點這裡用手機打開：\n' + base + '#c=' + code
@@ -332,7 +438,7 @@ function geoNotice2() {
     '<div class="muted">按「開啟定位」後，Safari 會問你一次，請選「允許」。iPhone 對同一個網站拒絕兩次後，就只能到設定裡打開。</div>' +
     '<div class="row"><button class="btn go" data-act="askGeo">開啟定位</button><button class="btn ghost" data-act="skipGeo">先不用定位</button></div></div>';
   if (geo === 'skipped' && !S.testMode) return '<div class="card info"><div class="body">沒開定位也能玩：照著傳聞和提示找，到了按「我到了」。</div><div class="row"><button class="btn small" data-act="askGeo">開啟定位</button></div></div>';
-  if (S.testMode) return '<div class="card info"><div class="body">測試模式：按「假裝我走到了」就能看揭曉畫面，這樣的發現不算分。到「發現簿」可以關掉。</div></div>';
+  if (S.testMode) return '<div class="card info"><div class="body">測試模式：按「假裝我走到了」就能看揭曉畫面，這樣的發現不算分。到「集印帳」可以關掉。</div></div>';
   if (geo === 'insecure') return '<div class="card warn"><div class="body">這個網頁要放在 https 網址上，手機才肯給定位。現在可以先開測試模式看看。</div><div class="row"><button class="btn small" data-act="testOn">先用測試模式看看</button></div></div>';
   if (geo === 'denied') return '<div class="card warn"><div class="body">Safari 沒有拿到定位。要重新打開：點網址列左邊的「大小」› 網站設定 › 位置 › 允許；或到 設定 › 隱私權與安全性 › 定位服務 › Safari 網站 › 使用 App 期間。改完重新整理這頁。</div><div class="muted">沒有定位也能玩：照著提示找，到了按「我到了」。</div><div class="row"><button class="btn small" data-act="testOn">先用測試模式看看</button></div></div>';
   if (geo === 'unavailable') return '<div class="card warn"><div class="body">這支手機現在拿不到定位。到戶外再試；或照著提示找，到了按「我到了」。</div><div class="row"><button class="btn small" data-act="testOn">先用測試模式看看</button></div></div>';
@@ -372,6 +478,7 @@ function viewExplore() {
   }
   out += '<div class="rumor' + (q.sys ? '' : ' friend') + '"><div class="rumorFrom">' + (q.sys ? '城市裡的傳聞' : esc(q.f) + ' 傳來的傳聞') + '</div>' +
     '<div class="rumorText">「' + esc(q.h) + '」</div>' +
+    '<div class="muted">找到它，就能拿到' + (q.sys ? '一枚城市章' : ' ' + esc(q.f) + ' 做的章') + '。</div>' +
     (!q.sys && q.c && q.c.length ? '<div class="chainT">這則傳聞一路傳下來：' + esc(q.c.concat([q.f]).join(' → ')) + ' → 你</div>' : '') +
     compassHTML(d, b) +
     (trend ? '<div class="trend" style="color:' + (trend.charAt(0) === '越' ? 'var(--trail)' : 'var(--warn)') + '">' + trend + '</div>' : '') +
@@ -408,6 +515,9 @@ function viewLeave() {
     '<label>揭曉（到了才看到）：這是哪裡？</label><input data-f="n" maxlength="20" value="' + esc(draft.n) + '" placeholder="例如：巷口豆花店">' +
     '<label>驚喜（到了才看到）：你在這裡發現了什麼？</label><textarea data-f="m" maxlength="60" placeholder="例如：點花生豆花，坐窗邊可以看到整條老街">' + esc(draft.m) + '</textarea>' +
     '<label>類型</label><div class="chips">' + CATS.map(function (c) { return '<button class="chip' + (draft.k === c.k ? ' on' : '') + '" data-act="cat" data-v="' + c.k + '">' + c.n + '</button>'; }).join('') + '</div>' +
+    '<label>你的章（朋友找到時會拿到，不想改就跳過）</label><div class="stampRow">' + stampCanvas(draftStamp(), 96, fdate(Date.now()), '', true) +
+    '<div style="flex:1;display:flex;flex-direction:column;gap:6px"><button class="btn small" data-act="stampNext">換一個樣式</button>' +
+    '<input data-f="w" maxlength="4" value="' + esc(draft.w) + '" placeholder="章上的字，最多 4 字（預設「' + esc(cat(draft.k).n) + '」）"></div></div>' +
     '<div class="muted">只能埋你現在站的地點。跟酒、深夜、陌生人、危險地點有關的內容會被擋掉。朋友隨時可以略過。</div>' +
     '<div class="muted" id="leaveAcc">' + (h ? '現在定位誤差 ±' + Math.round(h.acc) + ' m' : '等定位中…') + '</div>' +
     '<div class="err" id="leaveErr"></div><button class="btn go block" data-act="leave">埋好了，傳給朋友</button></div>';
@@ -419,11 +529,35 @@ function viewLeave() {
   });
   return out;
 }
+function stampCell(st, ts, line2, tags) {
+  return '<div class="stampCell">' + stampCanvas(st, 120, fdate(ts)) + '<div class="stampPlace">' + esc(st.place) + '</div><div class="stampBy">' + esc(line2) + '</div>' +
+    '<div class="stampMeta">' + new Date(ts).toLocaleDateString('zh-TW') + (tags ? ' · ' + tags : '') + '</div></div>';
+}
 function viewBook() {
   var sc = score(), out = '<div class="card"><div class="h">' + esc(S.me.name) + (S.me.crew ? '<span class="hSub">幫派：' + esc(S.me.crew) + '</span>' : '') + '</div>' +
-    '<div class="muted">發現 ' + sc.found + ' 個地方 · 埋了 ' + sc.left + ' 則傳聞 · 被朋友找到 ' + sc.taken + ' 次</div><div class="row">' +
+    '<div class="muted">收集了 ' + sc.found + ' 枚章 · 埋了 ' + sc.left + ' 則傳聞 · 你的章被蓋走 ' + sc.taken + ' 次</div><div class="row">' +
     '<button class="btn small" data-act="rename">改名字</button><button class="btn small" data-act="test">' + (S.testMode ? '關閉測試模式' : '開啟測試模式') + '</button>' +
     (Object.keys(S.skipped).length ? '<button class="btn small" data-act="unskip">找回略過的傳聞</button>' : '') + '</div></div>';
+  var ids = Object.keys(S.found).sort(function (a, b) { return S.found[b].ts - S.found[a].ts; });
+  var byId = {}; rumors().forEach(function (q) { byId[q.id] = q; });
+  var fr = ids.filter(function (id) { return !S.found[id].sys; }), city = ids.filter(function (id) { return S.found[id].sys; });
+  var makers = {}; fr.forEach(function (id) { if (!S.found[id].test) makers[S.found[id].from || '朋友'] = 1; });
+  function cells(list) {
+    return '<div class="stampGrid">' + list.map(function (id) {
+      var f = S.found[id], st = foundStamp(id, f, byId[id]);
+      return stampCell(st, f.ts, f.sys ? '城市章' : st.by + ' 做的章', (f.test ? '測試' : '') + (f.manual ? (f.test ? '、' : '') + '手動' : ''));
+    }).join('') + '</div>';
+  }
+  out += '<div class="h">朋友給的章<span class="hSub">' + (fr.length ? fr.length + ' 枚，來自 ' + Object.keys(makers).length + ' 位朋友' : '每一枚都是朋友在他喜歡的地方做的') + '</span></div>';
+  out += fr.length ? cells(fr) : '<div class="card"><div class="body">還沒有。請朋友在他喜歡的地方埋一則傳聞傳給你，你走到那裡，就拿到他做的章。</div></div>';
+  if (city.length) out += '<div class="h">城市章<span class="hSub">' + city.length + ' 枚</span></div>' + cells(city);
+  if (!ids.length) out += '<div class="card"><div class="body">回「探索」跟著溫度走，第一枚章就在附近。</div></div>';
+  if (S.left.length) {
+    out += '<div class="h">你做的章<span class="hSub">朋友找到你的傳聞就會蓋走一枚</span></div><div class="stampGrid">' + S.left.map(function (q) {
+      var t = S.taken[q.id] || [];
+      return stampCell(stampOf(q), q.ts, t.length ? '被 ' + t.length + ' 人蓋走' : '還沒有人蓋走', t.length ? esc(t.map(function (x) { return x.b; }).join('、')) : '');
+    }).join('') + '</div>';
+  }
   out += '<div class="h">傳承鏈<span class="hSub">一則傳聞一路傳下去</span></div>';
   var takenMine = S.left.filter(function (q) { return (S.taken[q.id] || []).length; });
   S.chains.forEach(function (c, i) {
@@ -433,21 +567,12 @@ function viewBook() {
     out += '<div class="card"><div class="muted">' + esc(q.n) + '（你埋的）</div>' + chainHTML((q.c || []).concat([S.me.name, (S.taken[q.id] || []).map(function (x) { return x.b; }).join('、')])) + '</div>';
   });
   if (!S.chains.length && !takenMine.length) out += '<div class="card"><div class="body">找到朋友的傳聞、或你的傳聞被找到後，傳承鏈會長在這裡。</div></div>';
-  out += '<div class="h">我發現的地方</div>';
-  var ids = Object.keys(S.found).sort(function (a, b) { return S.found[b].ts - S.found[a].ts; });
-  if (!ids.length) out += '<div class="card"><div class="body">還沒有。回「探索」，跟著溫度走。</div></div>';
-  var byId = {}; rumors().forEach(function (q) { byId[q.id] = q; });
-  ids.forEach(function (id) {
-    var f = S.found[id], q = byId[id];
-    out += '<div class="item"><div class="ico' + (f.sys ? '' : ' f') + '">' + (q ? cat(q.k).i : '✓') + '</div><div style="flex:1"><div class="itemTitle">' + esc(f.n) + '</div><div class="itemMeta">' +
-      new Date(f.ts).toLocaleDateString('zh-TW') + (f.from ? ' · ' + esc(f.from) + ' 的傳聞' : '') + (f.test ? ' · 測試' : '') + (f.manual ? ' · 手動' : '') + '</div></div></div>';
-  });
   out += '<div class="muted">資料只存在這支手機的瀏覽器。傳聞靠連結裡的碼在朋友間傳，沒有伺服器、不需要帳號。' + (canSave ? '' : '（這個瀏覽器不讓網頁存資料，關掉就會不見。）') + '</div>';
   return out;
 }
 function onboardHTML(initial) {
   return '<div class="overlay"><div class="sheet"><div class="sheetH">' + (initial ? '改名字' : '這個城市有很多你還沒發現的事') + '</div>' +
-    '<div class="muted">跟著傳聞走，到了才知道是什麼。再把你的私房地點埋給朋友。只在這頁開著時用定位，不會背景追蹤。</div>' +
+    '<div class="muted">跟著傳聞走，到了才知道是什麼，還能拿到朋友做的章。再把你的私房地點埋給朋友。只在這頁開著時用定位，不會背景追蹤。</div>' +
     '<label>你的名字</label><input id="obName" maxlength="12" value="' + esc(initial ? initial.name : '') + '" placeholder="朋友認得的名字，例如：阿哲">' +
     '<label>幫派（可以空著）</label><input id="obCrew" maxlength="12" value="' + esc(initial ? initial.crew : '') + '" placeholder="例如：山景城早餐會">' +
     '<div class="err" id="obErr"></div><button class="btn go block" data-act="obDone">出發</button>' + (initial ? '<button class="btn block" data-act="obCancel">取消</button>' : '') + '</div></div>';
@@ -472,6 +597,8 @@ function sheetHTML() {
     var ch = q.sys ? null : (q.c || []).concat([q.f, S.me.name]);
     body = '<div class="kicker">' + (sheet.test ? '測試揭曉' : '你發現了') + '</div><div class="revealName">' + esc(q.n) + '</div>' +
       '<div class="revealBox"><div class="revealText">' + esc(q.sys ? q.r : (q.m || q.f + ' 想讓你來看看這裡。')) + '</div>' + (q.sys ? '' : '<div class="revealBy">— ' + esc(q.f) + ' 留給你的</div>') + '</div>' +
+      (S.found[q.id] ? '<div class="stampGot">' + stampCanvas(S.found[q.id].st || stampOf(q), 150, fdate(S.found[q.id].ts), 'stampIn') + '<div class="body">' +
+        (q.sys ? '一枚城市章' : '<b>' + esc(q.f) + '</b> 做的章') + (sheet.test ? '（測試，不算數）' : '，蓋進你的集印帳了') + '</div></div>' : '') +
       (q.sys && q.t ? '<div class="body">要不要順手：' + esc(q.t) + '</div>' : '') +
       '<div class="row">' + (q.sys && ogUrl(q.id) ? '<button class="btn" data-act="threads">分享到 Threads</button>' : '') + '<button class="btn" data-act="img" data-v="found">存成圖片</button></div>' +
       (ch ? chainHTML(ch, true) + '<button class="btn primary block" data-act="toReply">告訴 ' + esc(q.f) + ' 你找到了</button><button class="btn go block" data-act="chainOn">接下去：在附近埋一則給下一位</button>'
@@ -482,33 +609,38 @@ function sheetHTML() {
 }
 
 function render() {
+  stampQ = [];
   var app = document.getElementById('app'), sc = score();
   var head = '<div class="hud"><div style="flex:1"><div class="brand">日常開圖</div><div class="brandSub">' +
-    (S.me ? esc(S.me.name) + (S.me.crew ? ' · ' + esc(S.me.crew) : '') + ' · 發現 ' + sc.found + ' · 被找到 ' + sc.taken : '把日常變成可以探索的世界') +
+    (S.me ? esc(S.me.name) + (S.me.crew ? ' · ' + esc(S.me.crew) : '') + ' · 章 ' + sc.found + ' · 被蓋走 ' + sc.taken : '把日常變成可以探索的世界') +
     '</div></div><div class="gps" id="gps">' + gpsChip() + '</div></div>';
   var view = !S.me ? '' : tab === 'explore' ? viewExplore() : tab === 'friends' ? viewFriends() : tab === 'leave' ? viewLeave() : viewBook();
   app.innerHTML = head + '<div class="panel">' + view + '</div>';
   var pend = S.inbox.filter(function (q) { return !S.found[q.id] && !S.skipped[q.id]; }).length;
-  document.getElementById('tabs').innerHTML = [['explore', '探索'], ['friends', '朋友'], ['leave', '留傳聞'], ['book', '發現簿']].map(function (t) {
+  document.getElementById('tabs').innerHTML = [['explore', '探索'], ['friends', '朋友'], ['leave', '留傳聞'], ['book', '集印帳']].map(function (t) {
     return '<button class="tab' + (tab === t[0] ? ' on' : '') + '" data-act="tab" data-v="' + t[0] + '">' + t[1] + (t[0] === 'friends' && pend ? '<span class="badge">' + pend + '</span>' : '') + '</button>';
   }).join('');
   document.getElementById('modal').innerHTML = !S.me ? onboardHTML(null) : editingMe ? onboardHTML(S.me) : sheetHTML();
+  paintStamps();
 }
 
 // ---------- actions ----------
 function leaveRumor() {
-  var n = clean(draft.n, 20), h = clean(draft.h, 40), m = clean(draft.m, 60), p = here();
+  var n = clean(draft.n, 20), h = clean(draft.h, 40), m = clean(draft.m, 60), w = clean(draft.w, 4), p = here();
   if (!h) return '寫一句傳聞，讓朋友想來找。';
   if (!n) return '幫這個地方取個名字（朋友到了才會看到）。';
-  var bad = unsafe(n + ' ' + h + ' ' + m); if (bad) return '這段內容有 ' + bad + '，換個說法吧。';
+  var bad = unsafe(n + ' ' + h + ' ' + m + ' ' + w); if (bad) return '這段內容有 ' + bad + '，換個說法吧。';
   if (!p) return '要先有定位，才能把「這裡」埋起來。';
   if (!S.testMode && p.acc > ACC_MAX) return '定位誤差 ±' + Math.round(p.acc) + ' m，太大了。到戶外或靠窗再試。';
-  var q = { id: rid(), f: S.me.name, n: n, h: h, m: m, k: draft.k, a: p.lat, o: p.lng, ts: Date.now(), c: draft.from ? draft.from.chain.slice(0, -1).slice(-7) : [] };
+  var q = { id: rid(), f: S.me.name, n: n, h: h, m: m, k: draft.k, a: p.lat, o: p.lng, ts: Date.now(), c: draft.from ? draft.from.chain.slice(0, -1).slice(-7) : [], st: [draft.sv % SHAPE_N, Math.floor(draft.sv / SHAPE_N) % INKS.length, w] };
   S.left.unshift(q); save();
-  draft = { n: '', h: '', m: '', k: 'coffee', from: null };
+  draft = newDraft();
   sheet = { kind: 'share', q: q }; render(); return null;
 }
-document.addEventListener('input', function (e) { var f = e.target.getAttribute && e.target.getAttribute('data-f'); if (f) draft[f] = e.target.value; });
+document.addEventListener('input', function (e) {
+  var f = e.target.getAttribute && e.target.getAttribute('data-f'); if (!f) return; draft[f] = e.target.value;
+  if (f === 'w' || f === 'n') { var lv = document.querySelector('canvas[data-live]'); if (lv) paintOne(lv, draftStamp(), 96, fdate(Date.now())); }
+});
 document.addEventListener('click', function (e) {
   var t = e.target.closest ? e.target.closest('[data-act]') : null; if (!t || t.disabled) return;
   var a = t.getAttribute('data-act'), v = t.getAttribute('data-v'), q;
@@ -523,7 +655,7 @@ document.addEventListener('click', function (e) {
     case 'img': if (sheet && sheet.q) {
       var iq = sheet.q;
       if (v === 'bury') saveImage(S.me.name + ' 埋了一則傳聞給你', iq.h, '到了才知道是哪裡');
-      else saveImage(iq.sys ? '我今天找到了這則城市傳聞' : iq.f + ' 留的傳聞，我今天找到了', iq.h, '日常開圖 · 到了才知道是哪裡');
+      else saveImage(iq.sys ? '我今天找到了這則城市傳聞，拿到一枚章' : '我找到了 ' + iq.f + ' 留的傳聞，拿到他做的章', iq.h, '日常開圖 · 到了才知道是哪裡', S.found[iq.id] && S.found[iq.id].st);
     } break;
     case 'fake': q = current(); if (q) { testPos = { lat: q.a, lng: q.o, acc: 5 }; reveal(q, true); } break;
     case 'spoil': spoil = true; render(); break;
@@ -534,6 +666,7 @@ document.addEventListener('click', function (e) {
     case 'rename': editingMe = true; render(); break;
     case 'focus': focusId = v; tab = 'explore'; spoil = false; render(); break;
     case 'cat': draft.k = v; render(); break;
+    case 'stampNext': draft.sv = (draft.sv + 1 + Math.floor(Math.random() * (STYLE_N - 1))) % STYLE_N; render(); break;
     case 'leave': { var err = leaveRumor(); var el = document.getElementById('leaveErr'); if (err && el) el.textContent = err; break; }
     case 'reshare': q = S.left.filter(function (x) { return x.id === v; })[0]; if (q) { sheet = { kind: 'share', q: q }; render(); } break;
     case 'continue': draft.from = { chain: S.chains[+v].chain }; tab = 'leave'; render(); break;
@@ -542,8 +675,8 @@ document.addEventListener('click', function (e) {
     case 'share': navigator.share({ text: document.getElementById('shareFull').textContent }).catch(function () {}); break;
     case 'copy': { var txt2 = document.getElementById('shareFull').textContent; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt2).then(function () { toast('已複製'); }).catch(function () { toast('請長按上面的文字複製'); }); else toast('請長按上面的文字複製'); break; }
     case 'toReply': sheet = { kind: 'reply', q: sheet.q }; render(); break;
-    case 'chainOn': { var s = sheet.q; draft = { n: '', h: '', m: '', k: s.k, from: { chain: (s.c || []).concat([s.f, S.me.name]) } }; sheet = null; tab = 'leave'; render(); break; }
-    case 'leaveHere': draft = { n: '', h: '', m: '', k: sheet.q.k, from: null }; sheet = null; tab = 'leave'; render(); break;
+    case 'chainOn': { var s = sheet.q; draft = newDraft(s.k, { chain: (s.c || []).concat([s.f, S.me.name]) }); sheet = null; tab = 'leave'; render(); break; }
+    case 'leaveHere': draft = newDraft(sheet.q.k); sheet = null; tab = 'leave'; render(); break;
     case 'close': sheet = null; render(); autoReveal(); break;
     case 'obCancel': editingMe = false; render(); break;
     case 'obDone': {
